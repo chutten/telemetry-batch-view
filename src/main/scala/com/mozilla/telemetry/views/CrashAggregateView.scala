@@ -91,7 +91,8 @@ object CrashAggregateView {
     List("environment.addons", "activeExperiment", "branch"),
     List("environment.settings", "e10sEnabled"),
     List("environment.settings", "e10sCohort"),
-    List("environment.system", "gfx", "features", "compositor")
+    List("environment.system", "gfx", "features", "compositor"),
+    List("profile", "creationDate")
   )
 
   // names of the comparable dimensions above, used as dimension names in the database
@@ -108,7 +109,8 @@ object CrashAggregateView {
     "experiment_branch",
     "e10s_enabled",
     "e10s_cohort",
-    "gfx_compositor"
+    "gfx_compositor",
+    "profile_created"
   )
 
   val statsNames = List(
@@ -285,9 +287,11 @@ object CrashAggregateView {
               Some(topLevelField)
             } else { // JSON field, the rest of the path tells us where to look in the JSON
               val is_gfx_compositor = dimensionNames(index).equals("gfx_compositor")
+              val is_profile_date = dimensionNames(index).equals("profile_created")
               val dimensionValue = path.tail.foldLeft(parse(topLevelField))((value, fieldName) => value \ fieldName) // retrieve the value at the given path
               dimensionValue match {
                 case JString(value) if is_gfx_compositor && value == "none" => None
+                case JInt(value) if is_profile_date => Some(Days.daysBetween(activityDate, new DateTime(0).plusDays(value.toInt)).getDays().toString)
                 case JString(value) => Some(value)
                 case JBool(value) => Some(if (value) "True" else "False")
                 case JInt(value) => Some(value.toString)
